@@ -1,0 +1,62 @@
+[
+  {
+    "channel": "engineering",
+    "messages": [
+      {
+        "user": "alice",
+        "text": "Hey team, our staging deployment process: push to main branch, GitHub Actions builds Docker image, pushes to Docker Hub, then Render auto-deploys. Takes about 4-5 minutes total.",
+        "ts": "2024-01-15T10:00:00Z"
+      },
+      {
+        "user": "bob",
+        "text": "Reminder: all API keys go in .env file, never commit them. Use ANTHROPIC_API_KEY for Claude, SLACK_BOT_TOKEN for Slack integration.",
+        "ts": "2024-01-15T10:05:00Z"
+      },
+      {
+        "user": "alice",
+        "text": "ChromaDB data persists in ./chroma_db directory. If you reset it, run python scripts/ingest.py again to re-index everything.",
+        "ts": "2024-01-15T10:10:00Z"
+      }
+    ]
+  },
+  {
+    "channel": "product",
+    "messages": [
+      {
+        "user": "carol",
+        "text": "Sprint planning is every Monday 10am IST. Post your updates in #standup before 9:30am. Use the format: Done / Doing / Blocked.",
+        "ts": "2024-01-16T09:00:00Z"
+      },
+      {
+        "user": "dave",
+        "text": "Our onboarding checklist for new engineers: 1) Request GitHub org access from @alice 2) Set up .env from 1Password vault 3) Run docker-compose up 4) Read the architecture doc in Notion.",
+        "ts": "2024-01-16T09:15:00Z"
+      },
+      {
+        "user": "carol",
+        "text": "Bug triage happens every Wednesday 3pm IST in #bugs channel. P0 bugs get fixed same day, P1 within 48 hours, P2 in current sprint.",
+        "ts": "2024-01-16T09:30:00Z"
+      }
+    ]
+  },
+  {
+    "channel": "hr-general",
+    "messages": [
+      {
+        "user": "hr_team",
+        "text": "Leave policy: 12 annual leaves, 6 sick leaves per year. Submit requests in Zoho at least 3 days in advance. Manager approval required for more than 3 consecutive days.",
+        "ts": "2024-01-17T08:00:00Z"
+      },
+      {
+        "user": "hr_team",
+        "text": "Work from home policy: up to 3 days per week. Core hours are 11am-4pm IST where everyone must be reachable. Log your WFH days in the shared calendar.",
+        "ts": "2024-01-17T08:10:00Z"
+      },
+      {
+        "user": "hr_team",
+        "text": "Reimbursements: submit bills via Zoho Expense within 30 days of purchase. Internet allowance is Rs 1000/month, learning budget is Rs 10000/year per employee.",
+        "ts": "2024-01-17T08:20:00Z"
+      }
+    ]
+  }
+]

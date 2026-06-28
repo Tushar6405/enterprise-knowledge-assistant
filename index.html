@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knowledge Assistant</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg:        #0f1117;
+    --surface:   #1a1d27;
+    --border:    #2a2d3a;
+    --accent:    #7c6af7;
+    --accent-dim:#3d3580;
+    --green:     #22c55e;
+    --red:       #ef4444;
+    --yellow:    #f59e0b;
+    --text:      #e8e9f0;
+    --muted:     #6b7280;
+    --user-bg:   #2a2d3a;
+    --bot-bg:    #1e2235;
+    --mono:      'JetBrains Mono', monospace;
+    --sans:      'Inter', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Top bar ─────────────────────────────────────────────────── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.02em;
+  }
+
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 7px;
+    display: grid;
+    place-items: center;
+    font-size: 14px;
+  }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+  .dot.online { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  /* ── Layout ──────────────────────────────────────────────────── */
+  .layout {
+    display: grid;
+    grid-template-columns: 220px 1fr 260px;
+    flex: 1;
+    overflow: hidden;
+    height: calc(100vh - 57px);
+  }
+
+  /* ── Sidebar nav ─────────────────────────────────────────────── */
+  nav {
+    border-right: 1px solid var(--border);
+    padding: 20px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--surface);
+  }
+
+  .nav-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 8px 10px 4px;
+  }
+
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--sans);
+    font-size: 13.5px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    text-align: left;
+    width: 100%;
+  }
+
+  .nav-btn:hover { background: var(--border); color: var(--text); }
+  .nav-btn.active { background: var(--accent-dim); color: var(--accent); }
+
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+  /* ── Main panel ──────────────────────────────────────────────── */
+  main {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel {
+    display: none;
+    flex-direction: column;
+    height: 100%;
+  }
+  .panel.active { display: flex; }
+
+  /* ── Chat panel ──────────────────────────────────────────────── */
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .message {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 760px;
+  }
+
+  .message.user { align-self: flex-end; align-items: flex-end; }
+  .message.bot  { align-self: flex-start; }
+
+  .msg-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .msg-bubble {
+    padding: 13px 17px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.65;
+    white-space: pre-wrap;
+  }
+
+  .message.user .msg-bubble {
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    border-bottom-right-radius: 3px;
+  }
+
+  .message.bot .msg-bubble {
+    background: var(--bot-bg);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 3px;
+  }
+
+  .sources {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .source-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--accent);
+  }
+
+  .chat-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  .chat-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 16px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    resize: none;
+    min-height: 44px;
+    max-height: 120px;
+    outline: none;
+    transition: border 0.15s;
+    line-height: 1.5;
+  }
+
+  .chat-input:focus { border-color: var(--accent); }
+  .chat-input::placeholder { color: var(--muted); }
+
+  .send-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    width: 44px; height: 44px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    color: white;
+    font-size: 18px;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+  }
+
+  .send-btn:hover { opacity: 0.85; }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* typing indicator */
+  .typing {
+    display: flex;
+    gap: 5px;
+    padding: 14px 17px;
+    background: var(--bot-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    border-bottom-left-radius: 3px;
+    width: fit-content;
+  }
+
+  .typing span {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    animation: bounce 1.2s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+  }
+
+  /* ── Ingest panel ────────────────────────────────────────────── */
+  .ingest-panel {
+    padding: 28px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .panel-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+  }
+
+  .panel-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+
+  .ingest-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .ingest-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .ingest-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ingest-card-sub {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .drop-zone {
+    border: 1.5px dashed var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(124,106,247,0.05);
+    color: var(--accent);
+  }
+
+  .drop-zone input[type=file] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .drop-icon { font-size: 22px; margin-bottom: 6px; }
+
+  .ingest-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    padding: 9px 16px;
+    color: white;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .ingest-btn:hover { opacity: 0.85; }
+  .ingest-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .ingest-btn.secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .ingest-btn.secondary:hover { background: var(--border); }
+
+  .ingest-log {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    min-height: 80px;
+    max-height: 160px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    line-height: 1.7;
+  }
+
+  .log-line { display: block; }
+  .log-line.ok   { color: var(--green); }
+  .log-line.err  { color: var(--red); }
+  .log-line.info { color: var(--accent); }
+
+  /* ── Right panel — stats ─────────────────────────────────────── */
+  .stats-panel {
+    border-left: 1px solid var(--border);
+    padding: 20px 16px;
+    overflow-y: auto;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .stats-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .stat-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-size: 26px;
+    font-weight: 600;
+    font-family: var(--mono);
+    color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .model-badge {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .model-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    flex-shrink: 0;
+  }
+
+  .refresh-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 7px 12px;
+    color: var(--muted);
+    font-family: var(--sans);
+    font-size: 12px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    width: 100%;
+  }
+  .refresh-btn:hover { color: var(--text); border-color: var(--text); }
+
+  .recent-queries {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .recent-q {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 8px 10px;
+    background: var(--bg);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    line-height: 1.4;
+  }
+  .recent-q:hover { color: var(--text); border-color: var(--accent); }
+
+  .empty-state {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 40px 20px;
+    line-height: 1.7;
+  }
+
+  .empty-icon { font-size: 32px; margin-bottom: 10px; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    Knowledge Assistant
+  </div>
+  <div class="status-pill">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusText">connecting...</span>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav>
+    <div class="nav-label">Workspace</div>
+    <button class="nav-btn active" onclick="switchTab('chat', this)">
+      <span class="nav-icon">💬</span> Chat
+    </button>
+    <button class="nav-btn" onclick="switchTab('ingest', this)">
+      <span class="nav-icon">📥</span> Ingest Data
+    </button>
+
+    <div class="nav-label" style="margin-top:12px">Quick Ask</div>
+    <button class="nav-btn" onclick="quickAsk('What is the leave policy?')">
+      <span class="nav-icon">📋</span> Leave policy
+    </button>
+    <button class="nav-btn" onclick="quickAsk('How do I set up the project locally?')">
+      <span class="nav-icon">💻</span> Local setup
+    </button>
+    <button class="nav-btn" onclick="quickAsk('How do code reviews work?')">
+      <span class="nav-icon">🔍</span> Code reviews
+    </button>
+    <button class="nav-btn" onclick="quickAsk('What is the sprint planning schedule?')">
+      <span class="nav-icon">📅</span> Sprint planning
+    </button>
+    <button class="nav-btn" onclick="quickAsk('What is the reimbursement process?')">
+      <span class="nav-icon">💰</span> Reimbursements
+    </button>
+  </nav>
+
+  <!-- Main -->
+  <main>
+
+    <!-- Chat panel -->
+    <div class="panel active" id="panel-chat">
+      <div class="chat-messages" id="chatMessages">
+        <div class="empty-state">
+          <div class="empty-icon">🧠</div>
+          Ask anything about your company's Slack or Notion knowledge base.<br>
+          Try a quick ask from the sidebar, or type your own question.
+        </div>
+      </div>
+      <div class="chat-footer">
+        <div class="input-row">
+          <textarea
+            class="chat-input"
+            id="chatInput"
+            placeholder="Ask a question about your knowledge base..."
+            rows="1"
+            onkeydown="handleKey(event)"
+            oninput="autoResize(this)"
+          ></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ingest panel -->
+    <div class="panel" id="panel-ingest">
+      <div class="ingest-panel">
+        <div class="panel-title">Ingest Knowledge</div>
+        <div class="panel-sub">Upload your Slack export or Notion markdown to add it to the knowledge base. Existing data is preserved — re-ingesting the same file will overwrite matching chunks.</div>
+
+        <div class="ingest-grid">
+          <!-- Slack -->
+          <div class="ingest-card">
+            <div class="ingest-card-title">
+              <span>💬</span> Slack Export
+            </div>
+            <div class="ingest-card-sub">
+              Export from Slack: Workspace Settings → Import/Export → Export → JSON. Upload the .json file.
+            </div>
+            <div class="drop-zone" id="slackDrop">
+              <input type="file" accept=".json" onchange="handleFile('slack', this)">
+              <div class="drop-icon">📄</div>
+              <div id="slackFileName">Drop .json file or click to browse</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="ingest-btn" onclick="ingestFile('slack')" id="slackBtn">Ingest Slack</button>
+              <button class="ingest-btn secondary" onclick="ingestSample('slack')">Use sample</button>
+            </div>
+          </div>
+
+          <!-- Notion -->
+          <div class="ingest-card">
+            <div class="ingest-card-title">
+              <span>📝</span> Notion Export
+            </div>
+            <div class="ingest-card-sub">
+              Export from Notion: Page menu → Export → Markdown & CSV. Upload the .md file.
+            </div>
+            <div class="drop-zone" id="notionDrop">
+              <input type="file" accept=".md,.txt" onchange="handleFile('notion', this)">
+              <div class="drop-icon">📄</div>
+              <div id="notionFileName">Drop .md file or click to browse</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="ingest-btn" onclick="ingestFile('notion')" id="notionBtn">Ingest Notion</button>
+              <button class="ingest-btn secondary" onclick="ingestSample('notion')">Use sample</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Log -->
+        <div style="margin-bottom:8px;font-size:12px;color:var(--muted);">Activity log</div>
+        <div class="ingest-log" id="ingestLog"><span class="log-line">Waiting for ingestion...</span></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Right stats panel (always visible) -->
+  <aside class="stats-panel">
+    <div>
+      <div class="stats-section-title">Knowledge Base</div>
+      <div class="stat-card">
+        <div class="stat-value" id="chunkCount">—</div>
+        <div class="stat-label">total chunks indexed</div>
+      </div>
+      <button class="refresh-btn" onclick="loadStats()">↻ Refresh stats</button>
+    </div>
+
+    <div>
+      <div class="stats-section-title">Model</div>
+      <div class="model-badge">
+        <div class="model-dot"></div>
+        <span id="modelName">loading...</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="stats-section-title">Recent questions</div>
+      <div class="recent-queries" id="recentQueries">
+        <div style="font-size:12px;color:var(--muted)">No questions yet.</div>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+  const API = 'http://127.0.0.1:8000';
+  let recentQueries = [];
+  let slackFile = null;
+  let notionFile = null;
+
+  // ── Tab switching ────────────────────────────────────────────────
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // ── Health / stats ───────────────────────────────────────────────
+  async function loadStats() {
+    try {
+      const res = await fetch(`${API}/health`);
+      const data = await res.json();
+      document.getElementById('chunkCount').textContent = data.knowledge_base.total_chunks;
+      document.getElementById('modelName').textContent = data.model;
+      document.getElementById('statusDot').className = 'dot online';
+      document.getElementById('statusText').textContent = 'API connected';
+    } catch {
+      document.getElementById('statusDot').className = 'dot';
+      document.getElementById('statusText').textContent = 'API offline';
+      document.getElementById('chunkCount').textContent = '—';
+      document.getElementById('modelName').textContent = 'unavailable';
+    }
+  }
+
+  // ── Chat ─────────────────────────────────────────────────────────
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  function quickAsk(q) {
+    switchTab('chat', document.querySelector('.nav-btn'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.nav-btn').classList.add('active');
+    document.getElementById('chatInput').value = q;
+    sendMessage();
+  }
+
+  function addMessage(role, text, sources) {
+    const box = document.getElementById('chatMessages');
+
+    // Remove empty state
+    const empty = box.querySelector('.empty-state');
+    if (empty) empty.remove();
+
+    const msg = document.createElement('div');
+    msg.className = `message ${role}`;
+
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = role === 'user' ? 'You' : '⚡ Assistant';
+    msg.appendChild(label);
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.textContent = text;
+    msg.appendChild(bubble);
+
+    if (sources && sources.length > 0) {
+      const src = document.createElement('div');
+      src.className = 'sources';
+      sources.forEach(s => {
+        const tag = document.createElement('span');
+        tag.className = 'source-tag';
+        tag.textContent = s;
+        src.appendChild(tag);
+      });
+      msg.appendChild(src);
+    }
+
+    box.appendChild(msg);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function addTyping() {
+    const box = document.getElementById('chatMessages');
+    const msg = document.createElement('div');
+    msg.className = 'message bot';
+    msg.id = 'typingMsg';
+
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = '⚡ Assistant';
+    msg.appendChild(label);
+
+    const typing = document.createElement('div');
+    typing.className = 'typing';
+    typing.innerHTML = '<span></span><span></span><span></span>';
+    msg.appendChild(typing);
+
+    box.appendChild(msg);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function removeTyping() {
+    const el = document.getElementById('typingMsg');
+    if (el) el.remove();
+  }
+
+  function addToRecent(q) {
+    recentQueries = [q, ...recentQueries.filter(x => x !== q)].slice(0, 5);
+    const el = document.getElementById('recentQueries');
+    el.innerHTML = recentQueries.map(q =>
+      `<div class="recent-q" onclick="quickAsk('${q.replace(/'/g, "\\'")}')">${q}</div>`
+    ).join('');
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const query = input.value.trim();
+    if (!query) return;
+
+    const btn = document.getElementById('sendBtn');
+    btn.disabled = true;
+    input.value = '';
+    input.style.height = 'auto';
+
+    addMessage('user', query);
+    addTyping();
+    addToRecent(query);
+
+    try {
+      const res = await fetch(`${API}/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, top_k: 5 })
+      });
+      const data = await res.json();
+      removeTyping();
+      addMessage('bot', data.answer, data.sources);
+      loadStats();
+    } catch (err) {
+      removeTyping();
+      addMessage('bot', '⚠️ Could not reach the API. Make sure the server is running at ' + API);
+    }
+
+    btn.disabled = false;
+    input.focus();
+  }
+
+  // ── Ingest ───────────────────────────────────────────────────────
+  function handleFile(type, input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (type === 'slack') {
+      slackFile = file;
+      document.getElementById('slackFileName').textContent = '📄 ' + file.name;
+    } else {
+      notionFile = file;
+      document.getElementById('notionFileName').textContent = '📄 ' + file.name;
+    }
+  }
+
+  function logLine(text, cls = '') {
+    const log = document.getElementById('ingestLog');
+    const line = document.createElement('span');
+    line.className = 'log-line ' + cls;
+    line.textContent = text + '\n';
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function clearLog() {
+    document.getElementById('ingestLog').innerHTML = '';
+  }
+
+  async function ingestFile(type) {
+    const file = type === 'slack' ? slackFile : notionFile;
+    if (!file) { logLine('⚠ No file selected. Upload a file first.', 'err'); return; }
+
+    const btn = document.getElementById(type + 'Btn');
+    btn.disabled = true;
+    clearLog();
+    logLine(`Uploading ${file.name}...`, 'info');
+
+    const form = new FormData();
+    form.append('file', file);
+
+    try {
+      const res = await fetch(`${API}/ingest/${type}`, { method: 'POST', body: form });
+      const data = await res.json();
+      logLine(`✓ Stored ${data.chunks_stored} chunks from ${type}`, 'ok');
+      loadStats();
+    } catch (err) {
+      logLine('✗ Upload failed: ' + err.message, 'err');
+    }
+    btn.disabled = false;
+  }
+
+  async function ingestSample(type) {
+    clearLog();
+    logLine(`Ingesting sample ${type} data...`, 'info');
+    try {
+      const res = await fetch(`${API}/ingest/${type}`, { method: 'POST' });
+      const data = await res.json();
+      logLine(`✓ Stored ${data.chunks_stored} chunks from sample ${type} data`, 'ok');
+      loadStats();
+    } catch (err) {
+      logLine('✗ Failed: ' + err.message, 'err');
+    }
+  }
+
+  // drag-over styles
+  document.querySelectorAll('.drop-zone').forEach(zone => {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', () => zone.classList.remove('drag-over'));
+  });
+
+  // ── Init ─────────────────────────────────────────────────────────
+  loadStats();
+  setInterval(loadStats, 30000);
+</script>
+</body>
+</html>

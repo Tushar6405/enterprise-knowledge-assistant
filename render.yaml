@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: enterprise-knowledge-assistant
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false          # set this manually in Render dashboard
+      - key: SLACK_SIGNING_SECRET
+        sync: false          # set this manually in Render dashboard
+      - key: CLAUDE_MODEL
+        value: claude-haiku-4-5
+      - key: CHROMA_PATH
+        value: ./chroma_db
+      - key: TOP_K
+        value: "5"
+    disk:
+      name: chroma-storage
+      mountPath: /app/chroma_db
+      sizeGB: 1              # persists ChromaDB across deploys
