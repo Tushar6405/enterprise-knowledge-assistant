@@ -37,10 +37,24 @@ from app.synthesizer import synthesize
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from app.rag_engine import get_embedder, get_collection
+    from app.rag_engine import get_embedder, get_collection, ingest_slack, ingest_notion, collection_stats
+    from pathlib import Path
     print("[Startup] Pre-warming embedding model...")
     get_embedder()
     get_collection()
+
+    # Auto-ingest sample data if knowledge base is empty
+    stats = collection_stats()
+    if stats["total_chunks"] == 0:
+        print("[Startup] Knowledge base empty — ingesting sample data...")
+        slack_path = Path("data/sample/slack_export.json")
+        notion_path = Path("data/sample/notion_export.md")
+        if slack_path.exists():
+            ingest_slack(str(slack_path))
+        if notion_path.exists():
+            ingest_notion(str(notion_path))
+        print("[Startup] Sample data ingested.")
+
     print("[Startup] Ready.")
     yield
 
